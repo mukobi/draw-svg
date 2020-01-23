@@ -150,6 +150,8 @@ private:
 	// resolve samples to render target
 	void resolve(void);
 
+	int edge(int x, int y, int p0x, int p0y, int p1x, int p1y);
+
 	SoftwareRendererRef *ref;
 }; // class SoftwareRendererImp
 

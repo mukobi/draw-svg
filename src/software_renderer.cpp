@@ -262,10 +262,12 @@ void SoftwareRendererImp::rasterize_point( float x, float y, Color color ) {
 
   // fill sample - NOT doing alpha blending!
   // TODO: Call fill_pixel here to run alpha blending
-  render_target[4 * (sx + sy * target_w)] = (uint8_t)(color.r * 255);
+  /*render_target[4 * (sx + sy * target_w)] = (uint8_t)(color.r * 255);
   render_target[4 * (sx + sy * target_w) + 1] = (uint8_t)(color.g * 255);
   render_target[4 * (sx + sy * target_w) + 2] = (uint8_t)(color.b * 255);
-  render_target[4 * (sx + sy * target_w) + 3] = (uint8_t)(color.a * 255);
+  render_target[4 * (sx + sy * target_w) + 3] = (uint8_t)(color.a * 255);*/
+
+  fill_pixel(sx, sy, color);
 
 }
 
@@ -285,6 +287,39 @@ void SoftwareRendererImp::rasterize_triangle( float x0, float y0,
   // Task 1: 
   // Implement triangle rasterization (you may want to call fill_sample here)
 
+  // fill in the nearest pixel
+  int sx0 = (int)floor(x0);
+  int sx1 = (int)floor(x1);
+  int sx2 = (int)floor(x2);
+  int sy0 = (int)floor(y0);
+  int sy1 = (int)floor(y1);
+  int sy2 = (int)floor(y2);
+
+  // compute bounding box
+  int xMin = min({ sx0, sx1, sx2});
+  int xMax = max({ sx0, sx1, sx2});
+  int yMin = min({ sy0, sy1, sy2});
+  int yMax = max({ sy0, sy1, sy2});
+
+  // check bounds
+  xMin = max(xMin, 0);
+  yMin = max(yMin, 0);
+  xMax = min(xMax, int(target_w - 1));
+  yMax = min(yMax, int(target_h - 1));
+
+  // iterate over bounded pixels
+  for (int sx = xMin; sx <= xMax; sx++) {
+    for (int sy = yMin; sy <= yMax; sy++) {
+      if (edge(sx, sy, sx0, sy0, sx1, sy1) <= 0 &&
+          edge(sx, sy, sx1, sy1, sx2, sy2) <= 0 &&
+          edge(sx, sy, sx2, sy2, sx0, sy0) <= 0) { // in triangle
+
+        // fill pixel - alpha blending!
+        fill_pixel(sx, sy, color);
+      }
+    }
+  }
+
 }
 
 void SoftwareRendererImp::rasterize_image( float x0, float y0,
@@ -303,6 +338,15 @@ void SoftwareRendererImp::resolve( void ) {
   // You may also need to modify other functions marked with "Task 2".
   return;
 
+}
+
+int SoftwareRendererImp::edge(int x, int y, int p0x, int p0y, int p1x, int p1y)
+{
+  // evaluates the edge equation: the side of the edge from
+  // p0 to p1 that (x,y) lies on
+  int dx = p1x - p0x;
+  int dy = p1y - p0y;
+  return (x - p0x) * dy - (y - p0y) * dx;
 }
 
 
