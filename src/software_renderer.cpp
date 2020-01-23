@@ -16,7 +16,23 @@ namespace CS248 {
 
 // fill a sample location with color
 void SoftwareRendererImp::fill_sample(int sx, int sy, const Color &color) {
+  // check bounds
+  if (sx < 0 || sx >= sample_w) return;
+  if (sy < 0 || sy >= sample_h) return;
 
+  Color sample_color;
+  float inv255 = 1.0 / 255.0;
+  sample_color.r = sample_buffer[4 * (sx + sy * sample_w)] * inv255;
+  sample_color.g = sample_buffer[4 * (sx + sy * sample_w) + 1] * inv255;
+  sample_color.b = sample_buffer[4 * (sx + sy * sample_w) + 2] * inv255;
+  sample_color.a = sample_buffer[4 * (sx + sy * sample_w) + 3] * inv255;
+
+  sample_color = ref->alpha_blending_helper(sample_color, color);
+
+  sample_buffer[4 * (sx + sy * sample_w)] = (uint8_t)(sample_color.r * 255);
+  sample_buffer[4 * (sx + sy * sample_w) + 1] = (uint8_t)(sample_color.g * 255);
+  sample_buffer[4 * (sx + sy * sample_w) + 2] = (uint8_t)(sample_color.b * 255);
+  sample_buffer[4 * (sx + sy * sample_w) + 3] = (uint8_t)(sample_color.a * 255);
 }
 
 // fill samples in the entire pixel specified by pixel coordinates
@@ -24,24 +40,12 @@ void SoftwareRendererImp::fill_pixel(int x, int y, const Color &color) {
 
 	// Task 2: Re-implement this function
 
-	// check bounds
-	if (x < 0 || x >= target_w) return;
-	if (y < 0 || y >= target_h) return;
-
-	Color pixel_color;
-	float inv255 = 1.0 / 255.0;
-	pixel_color.r = render_target[4 * (x + y * target_w)] * inv255;
-	pixel_color.g = render_target[4 * (x + y * target_w) + 1] * inv255;
-	pixel_color.b = render_target[4 * (x + y * target_w) + 2] * inv255;
-	pixel_color.a = render_target[4 * (x + y * target_w) + 3] * inv255;
-
-	pixel_color = ref->alpha_blending_helper(pixel_color, color);
-
-	render_target[4 * (x + y * target_w)] = (uint8_t)(pixel_color.r * 255);
-	render_target[4 * (x + y * target_w) + 1] = (uint8_t)(pixel_color.g * 255);
-	render_target[4 * (x + y * target_w) + 2] = (uint8_t)(pixel_color.b * 255);
-	render_target[4 * (x + y * target_w) + 3] = (uint8_t)(pixel_color.a * 255);
-
+  // fill a sample for each sample in the pixel
+  for (int sx = 0; sx < sample_rate; sx++) {
+    for (int sy = 0; sy < sample_rate; sy++) {
+      fill_sample(x * sample_rate + sx, y * sample_rate + sy, color);
+    }
+  }
 }
 
 void SoftwareRendererImp::draw_svg( SVG& svg ) {
@@ -75,7 +79,8 @@ void SoftwareRendererImp::set_sample_rate( size_t sample_rate ) {
   // Task 2: 
   // You may want to modify this for supersampling support
   this->sample_rate = sample_rate;
-
+  this->sample_w = target_w * sample_rate;
+  this->sample_h = target_h * sample_rate;
 }
 
 void SoftwareRendererImp::set_render_target( unsigned char* render_target,
@@ -87,6 +92,8 @@ void SoftwareRendererImp::set_render_target( unsigned char* render_target,
   this->target_w = width;
   this->target_h = height;
 
+  this->sample_w = target_w * sample_rate;
+  this->sample_h = target_h * sample_rate;
 }
 
 void SoftwareRendererImp::draw_element( SVGElement* element ) {
@@ -336,8 +343,32 @@ void SoftwareRendererImp::resolve( void ) {
   // Task 2: 
   // Implement supersampling
   // You may also need to modify other functions marked with "Task 2".
-  return;
 
+
+  for (int px = 0; px < target_w; px++) {
+    for (int py = 0; py < target_h; py++) {
+      // average samples per pixel
+      Color pixel_color;
+      // sum
+      for (int sx = px * sample_rate; sx < px*sample_rate + sample_rate; sx++) {
+        for (int sy = py * sample_rate; sy < py * sample_rate + sample_rate; sy++) {
+          pixel_color.r += sample_buffer[4 * (sx + sy * sample_w)];
+          pixel_color.g += sample_buffer[4 * (sx + sy * sample_w) + 1];
+          pixel_color.b += sample_buffer[4 * (sx + sy * sample_w) + 2];
+          pixel_color.a += sample_buffer[4 * (sx + sy * sample_w) + 3];
+        }
+      }
+      // divide
+      pixel_color.r /= sample_rate;
+      pixel_color.g /= sample_rate;
+      pixel_color.b /= sample_rate;
+      pixel_color.a /= sample_rate;
+      render_target[4 * (px + py * target_w)] = (uint8_t)(pixel_color.r * 255);
+      render_target[4 * (px + py * target_w) + 1] = (uint8_t)(pixel_color.g * 255);
+      render_target[4 * (px + py * target_w) + 2] = (uint8_t)(pixel_color.b * 255);
+      render_target[4 * (px + py * target_w) + 3] = (uint8_t)(pixel_color.a * 255);
+    }
+  }
 }
 
 int SoftwareRendererImp::edge(int x, int y, int p0x, int p0y, int p1x, int p1y)

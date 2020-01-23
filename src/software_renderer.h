@@ -62,10 +62,13 @@ class SoftwareRenderer : public SVGRenderer {
   size_t sample_rate;
 
   // Render target memory location
-  unsigned char* render_target; 
+  unsigned char* render_target;
 
   // Target buffer dimension (in pixels)
   size_t target_w; size_t target_h;
+
+	// Sample buffer dimension (in samples)
+	size_t sample_w; size_t sample_h;
 
   // Texture sampler being used
   Sampler2D* sampler;
