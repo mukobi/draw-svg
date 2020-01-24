@@ -89,7 +89,6 @@ void SoftwareRendererImp::set_sample_rate( size_t sample_rate ) {
   this->sample_w = target_w * sample_rate;
   this->sample_h = target_h * sample_rate;
   size_t desired_size = 4 * sample_w * sample_h;
-  //clear_sample_buffer(desired_size);
 }
 
 void SoftwareRendererImp::set_render_target( unsigned char* render_target,
@@ -105,7 +104,7 @@ void SoftwareRendererImp::set_render_target( unsigned char* render_target,
   this->sample_w = target_w * sample_rate;
   this->sample_h = target_h * sample_rate;
   size_t desired_size = 4 * sample_w * sample_h;
-  clear_sample_buffer(desired_size);
+  clear_sample_buffer(desired_size);  // TODO: test removing
 }
 
 
@@ -294,13 +293,6 @@ void SoftwareRendererImp::rasterize_point( float x, float y, Color color ) {
   if (sx < 0 || sx >= target_w) return;
   if (sy < 0 || sy >= target_h) return;
 
-  // fill sample - NOT doing alpha blending!
-  // TODO: Call fill_pixel here to run alpha blending
-  /*render_target[4 * (sx + sy * target_w)] = (uint8_t)(color.r * 255);
-  render_target[4 * (sx + sy * target_w) + 1] = (uint8_t)(color.g * 255);
-  render_target[4 * (sx + sy * target_w) + 2] = (uint8_t)(color.b * 255);
-  render_target[4 * (sx + sy * target_w) + 3] = (uint8_t)(color.a * 255);*/
-
   fill_pixel(sx, sy, color);
 
 }
@@ -367,6 +359,32 @@ void SoftwareRendererImp::rasterize_image( float x0, float y0,
   // Task 4: 
   // Implement image rasterization (you may want to call fill_sample here)
 
+  // fill in the nearest pixel
+  int sx0 = x0 * float(sample_rate);
+  int sx1 = x1 * float(sample_rate);
+  int sy0 = y0 * float(sample_rate);
+  int sy1 = y1 * float(sample_rate);
+
+  // check bounds
+  sx0 = max(sx0, 0);
+  sy0 = max(sy0, 0);
+  sx1 = min(sx1, int(sample_w - 1));
+  sy1 = min(sy1, int(sample_h - 1));
+
+  // iterate over samples
+  float sample_dist = 1.0f / sample_rate;
+
+  for (int sx = sx0; sx <= sx1; sx++) {
+    float sx_screen = float(sx) / float(sample_rate) + 0.5 * sample_dist;
+    float u = (sx_screen - x0) / (x1 - x0);
+    for (int sy = sy0; sy <= sy1; sy++) {
+      float sy_screen = float(sy) / float(sample_rate) + 0.5 * sample_dist;
+      // sample that pixel
+      float v = (sy_screen - y0) / (y1 - y0);
+      Color sample_color = sampler->sample_nearest(tex, u, v);
+      fill_sample(sx, sy, sample_color);
+    }
+  }
 }
 
 // resolve samples to render target
