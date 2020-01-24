@@ -319,12 +319,12 @@ void SoftwareRendererImp::rasterize_triangle( float x0, float y0,
   // Implement triangle rasterization (you may want to call fill_sample here)
 
   // fill in the nearest pixel
-  int sx0 = (int)floor(x0) * sample_rate;
-  int sx1 = (int)floor(x1) * sample_rate;
-  int sx2 = (int)floor(x2) * sample_rate;
-  int sy0 = (int)floor(y0) * sample_rate;
-  int sy1 = (int)floor(y1) * sample_rate;
-  int sy2 = (int)floor(y2) * sample_rate;
+  int sx0 = x0 * float(sample_rate);
+  int sx1 = x1 * float(sample_rate);
+  int sx2 = x2 * float(sample_rate);
+  int sy0 = y0 * float(sample_rate);
+  int sy1 = y1 * float(sample_rate);
+  int sy2 = y2 * float(sample_rate);
 
   // compute bounding box
   int xMin = min({ sx0, sx1, sx2});
