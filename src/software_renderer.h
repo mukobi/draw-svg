@@ -155,7 +155,7 @@ private:
 	void resolve(void);
 
 	// on edge equation
-	int edge(int x, int y, int p0x, int p0y, int p1x, int p1y);
+	float edge(float x, float y, float p0x, float p0y, float p1x, float p1y);
 
 	// clears the sample buffer
 	void clear_sample_buffer(size_t desired_size);

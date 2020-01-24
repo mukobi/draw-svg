@@ -113,8 +113,8 @@ void SoftwareRendererImp::clear_sample_buffer(size_t desired_size)
 {
   cout << "clear_sample_buffer" << endl;
   if (sample_buffer.size() != desired_size) {
-    cout << "resize" << endl;
-    sample_buffer.resize(desired_size);
+    cout << "Reserve" << endl;
+    sample_buffer.reserve(desired_size);
   }
   sample_buffer.assign(desired_size, 255);
 }
@@ -319,12 +319,12 @@ void SoftwareRendererImp::rasterize_triangle( float x0, float y0,
   // Implement triangle rasterization (you may want to call fill_sample here)
 
   // fill in the nearest pixel
-  int sx0 = (int)floor(x0);
-  int sx1 = (int)floor(x1);
-  int sx2 = (int)floor(x2);
-  int sy0 = (int)floor(y0);
-  int sy1 = (int)floor(y1);
-  int sy2 = (int)floor(y2);
+  int sx0 = (int)floor(x0) * sample_rate;
+  int sx1 = (int)floor(x1) * sample_rate;
+  int sx2 = (int)floor(x2) * sample_rate;
+  int sy0 = (int)floor(y0) * sample_rate;
+  int sy1 = (int)floor(y1) * sample_rate;
+  int sy2 = (int)floor(y2) * sample_rate;
 
   // compute bounding box
   int xMin = min({ sx0, sx1, sx2});
@@ -335,18 +335,22 @@ void SoftwareRendererImp::rasterize_triangle( float x0, float y0,
   // check bounds
   xMin = max(xMin, 0);
   yMin = max(yMin, 0);
-  xMax = min(xMax, int(target_w - 1));
-  yMax = min(yMax, int(target_h - 1));
+  xMax = min(xMax, int(sample_w - 1));
+  yMax = min(yMax, int(sample_h - 1));
 
-  // iterate over bounded pixels
-  for (int sx = xMin; sx <= xMax; sx++) {
-    for (int sy = yMin; sy <= yMax; sy++) {
-      if (edge(sx, sy, sx0, sy0, sx1, sy1) <= 0 &&
-          edge(sx, sy, sx1, sy1, sx2, sy2) <= 0 &&
-          edge(sx, sy, sx2, sy2, sx0, sy0) <= 0) { // in triangle
+  // iterate over samples
+  float sample_dist = 1.0f / sample_rate;
+
+  for (float sx = xMin; sx <= xMax; sx++) {
+    float sx_screen = sx / float(sample_rate) + sample_dist / 1.0f;
+    for (float sy = yMin; sy <= yMax; sy++) {
+      float sy_screen = sy / float(sample_rate) + sample_dist / 1.0f;
+      if (edge(sx_screen, sy_screen, x0, y0, x1, y1) <= 0 && // TODO: sx0 to x0 (no round)
+          edge(sx_screen, sy_screen, x1, y1, x2, y2) <= 0 &&
+          edge(sx_screen, sy_screen, x2, y2, x0, y0) <= 0) { // in triangle
 
         // fill pixel - alpha blending!
-        fill_pixel(sx, sy, color);
+        fill_sample(sx, sy, color);
       }
     }
   }
@@ -404,12 +408,12 @@ void SoftwareRendererImp::resolve( void ) {
   clear_sample_buffer(desired_size);
 }
 
-int SoftwareRendererImp::edge(int x, int y, int p0x, int p0y, int p1x, int p1y)
+float SoftwareRendererImp::edge(float x, float y, float p0x, float p0y, float p1x, float p1y)
 {
   // evaluates the edge equation: the side of the edge from
   // p0 to p1 that (x,y) lies on
-  int dx = p1x - p0x;
-  int dy = p1y - p0y;
+  float dx = p1x - p0x;
+  float dy = p1y - p0y;
   return (x - p0x) * dy - (y - p0y) * dx;
 }
 
