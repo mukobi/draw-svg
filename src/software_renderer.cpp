@@ -124,6 +124,7 @@ void SoftwareRendererImp::draw_element( SVGElement* element ) {
 
 	// Task 3 (part 1):
 	// Modify this to implement the transformation stack
+  transformation = transformation * element->transform;
 
 	switch (element->type) {
 	case POINT:
@@ -154,6 +155,8 @@ void SoftwareRendererImp::draw_element( SVGElement* element ) {
 		break;
 	}
 
+  // undo transformation
+  transformation = transformation * element->transform.inv();
 }
 
 
@@ -345,11 +348,12 @@ void SoftwareRendererImp::rasterize_triangle( float x0, float y0,
     float sx_screen = float(sx) / float(sample_rate) + 0.5 * sample_dist;
     for (int sy = yMin; sy <= yMax; sy++) {
       float sy_screen = float(sy) / float(sample_rate) + 0.5 * sample_dist;
-      if (edge(sx_screen, sy_screen, x0, y0, x1, y1) <= 0 && // TODO: sx0 to x0 (no round)
-          edge(sx_screen, sy_screen, x1, y1, x2, y2) <= 0 &&
-          edge(sx_screen, sy_screen, x2, y2, x0, y0) <= 0) { // in triangle
 
-        // fill pixel - alpha blending!
+      float edge0 = edge(sx_screen, sy_screen, x0, y0, x1, y1);
+      float edge1 = edge(sx_screen, sy_screen, x1, y1, x2, y2);
+      float edge2 = edge(sx_screen, sy_screen, x2, y2, x0, y0);
+      if ((edge0 <= 0 && edge1 <= 0 && edge2 <= 0)
+        || (edge0 >= 0 && edge1 >= 0 && edge2 >= 0)) { // in triangle
         fill_sample(sx, sy, color);
       }
     }
