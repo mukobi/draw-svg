@@ -341,10 +341,10 @@ void SoftwareRendererImp::rasterize_triangle( float x0, float y0,
   // iterate over samples
   float sample_dist = 1.0f / sample_rate;
 
-  for (float sx = xMin; sx <= xMax; sx++) {
-    float sx_screen = sx / float(sample_rate) + sample_dist / 1.0f;
-    for (float sy = yMin; sy <= yMax; sy++) {
-      float sy_screen = sy / float(sample_rate) + sample_dist / 1.0f;
+  for (int sx = xMin; sx <= xMax; sx++) {
+    float sx_screen = float(sx) / float(sample_rate) + 0.5 * sample_dist;
+    for (int sy = yMin; sy <= yMax; sy++) {
+      float sy_screen = float(sy) / float(sample_rate) + 0.5 * sample_dist;
       if (edge(sx_screen, sy_screen, x0, y0, x1, y1) <= 0 && // TODO: sx0 to x0 (no round)
           edge(sx_screen, sy_screen, x1, y1, x2, y2) <= 0 &&
           edge(sx_screen, sy_screen, x2, y2, x0, y0) <= 0) { // in triangle
