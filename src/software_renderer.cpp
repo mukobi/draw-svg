@@ -20,19 +20,25 @@ void SoftwareRendererImp::fill_sample(int sx, int sy, const Color &color) {
   if (sx < 0 || sx >= sample_w) return;
   if (sy < 0 || sy >= sample_h) return;
 
-  Color sample_color;
+  size_t desired_size = 4 * sample_w * sample_h;
+  if (sample_buffer.size() != desired_size) clear_sample_buffer(desired_size);
+
+  // alpha blending
   float inv255 = 1.0 / 255.0;
-  sample_color.r = sample_buffer[4 * (sx + sy * sample_w)] * inv255;
-  sample_color.g = sample_buffer[4 * (sx + sy * sample_w) + 1] * inv255;
-  sample_color.b = sample_buffer[4 * (sx + sy * sample_w) + 2] * inv255;
-  sample_color.a = sample_buffer[4 * (sx + sy * sample_w) + 3] * inv255;
 
-  sample_color = ref->alpha_blending_helper(sample_color, color);
+  Color old_color;
+  old_color.r = sample_buffer[4 * (sx + sy * sample_w)] * inv255;
+  old_color.g = sample_buffer[4 * (sx + sy * sample_w) + 1] * inv255;
+  old_color.b = sample_buffer[4 * (sx + sy * sample_w) + 2] * inv255;
+  old_color.a = sample_buffer[4 * (sx + sy * sample_w) + 3] * inv255;
 
-  sample_buffer[4 * (sx + sy * sample_w)] = (uint8_t)(sample_color.r * 255);
-  sample_buffer[4 * (sx + sy * sample_w) + 1] = (uint8_t)(sample_color.g * 255);
-  sample_buffer[4 * (sx + sy * sample_w) + 2] = (uint8_t)(sample_color.b * 255);
-  sample_buffer[4 * (sx + sy * sample_w) + 3] = (uint8_t)(sample_color.a * 255);
+  old_color = ref->alpha_blending_helper(old_color, color);
+
+  // write to sample buffer
+  sample_buffer[4 * (sx + sy * sample_w)] = (uint8_t)(old_color.r * 255);
+  sample_buffer[4 * (sx + sy * sample_w) + 1] = (uint8_t)(old_color.g * 255);
+  sample_buffer[4 * (sx + sy * sample_w) + 2] = (uint8_t)(old_color.b * 255);
+  sample_buffer[4 * (sx + sy * sample_w) + 3] = (uint8_t)(old_color.a * 255);
 }
 
 // fill samples in the entire pixel specified by pixel coordinates
@@ -78,9 +84,12 @@ void SoftwareRendererImp::set_sample_rate( size_t sample_rate ) {
 
   // Task 2: 
   // You may want to modify this for supersampling support
+  cout << "set_sample_rate" << endl;
   this->sample_rate = sample_rate;
   this->sample_w = target_w * sample_rate;
   this->sample_h = target_h * sample_rate;
+  size_t desired_size = 4 * sample_w * sample_h;
+  //clear_sample_buffer(desired_size);
 }
 
 void SoftwareRendererImp::set_render_target( unsigned char* render_target,
@@ -88,13 +97,28 @@ void SoftwareRendererImp::set_render_target( unsigned char* render_target,
 
   // Task 2: 
   // You may want to modify this for supersampling support
+  cout << "set_render_target" << endl;
   this->render_target = render_target;
   this->target_w = width;
   this->target_h = height;
 
   this->sample_w = target_w * sample_rate;
   this->sample_h = target_h * sample_rate;
+  size_t desired_size = 4 * sample_w * sample_h;
+  clear_sample_buffer(desired_size);
 }
+
+
+void SoftwareRendererImp::clear_sample_buffer(size_t desired_size)
+{
+  cout << "clear_sample_buffer" << endl;
+  if (sample_buffer.size() != desired_size) {
+    cout << "resize" << endl;
+    sample_buffer.resize(desired_size);
+  }
+  sample_buffer.assign(desired_size, 255);
+}
+
 
 void SoftwareRendererImp::draw_element( SVGElement* element ) {
 
@@ -343,32 +367,41 @@ void SoftwareRendererImp::resolve( void ) {
   // Task 2: 
   // Implement supersampling
   // You may also need to modify other functions marked with "Task 2".
-
+  float inv255 = 1.0 / 255.0;
 
   for (int px = 0; px < target_w; px++) {
     for (int py = 0; py < target_h; py++) {
       // average samples per pixel
-      Color pixel_color;
+
+      uint32_t r = 0;
+      uint32_t g = 0;
+      uint32_t b = 0;
+      uint32_t a = 0;
       // sum
       for (int sx = px * sample_rate; sx < px*sample_rate + sample_rate; sx++) {
         for (int sy = py * sample_rate; sy < py * sample_rate + sample_rate; sy++) {
-          pixel_color.r += sample_buffer[4 * (sx + sy * sample_w)];
-          pixel_color.g += sample_buffer[4 * (sx + sy * sample_w) + 1];
-          pixel_color.b += sample_buffer[4 * (sx + sy * sample_w) + 2];
-          pixel_color.a += sample_buffer[4 * (sx + sy * sample_w) + 3];
+          r += sample_buffer[4 * (sx + sy * sample_w)];
+          g += sample_buffer[4 * (sx + sy * sample_w) + 1];
+          b += sample_buffer[4 * (sx + sy * sample_w) + 2];
+          a += sample_buffer[4 * (sx + sy * sample_w) + 3];
         }
       }
       // divide
-      pixel_color.r /= sample_rate;
-      pixel_color.g /= sample_rate;
-      pixel_color.b /= sample_rate;
-      pixel_color.a /= sample_rate;
+      Color pixel_color;
+      pixel_color.r = r / sample_rate / sample_rate * inv255;
+      pixel_color.g = g / sample_rate / sample_rate * inv255;
+      pixel_color.b = b / sample_rate / sample_rate * inv255;
+      pixel_color.a = a / sample_rate / sample_rate * inv255;
+                                     
       render_target[4 * (px + py * target_w)] = (uint8_t)(pixel_color.r * 255);
       render_target[4 * (px + py * target_w) + 1] = (uint8_t)(pixel_color.g * 255);
       render_target[4 * (px + py * target_w) + 2] = (uint8_t)(pixel_color.b * 255);
       render_target[4 * (px + py * target_w) + 3] = (uint8_t)(pixel_color.a * 255);
     }
   }
+
+  size_t desired_size = 4 * sample_w * sample_h;
+  clear_sample_buffer(desired_size);
 }
 
 int SoftwareRendererImp::edge(int x, int y, int p0x, int p0y, int p1x, int p1y)
@@ -379,6 +412,7 @@ int SoftwareRendererImp::edge(int x, int y, int p0x, int p0y, int p1x, int p1y)
   int dy = p1y - p0y;
   return (x - p0x) * dy - (y - p0y) * dx;
 }
+
 
 
 } // namespace CS248

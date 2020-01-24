@@ -67,9 +67,6 @@ class SoftwareRenderer : public SVGRenderer {
   // Target buffer dimension (in pixels)
   size_t target_w; size_t target_h;
 
-	// Sample buffer dimension (in samples)
-	size_t sample_w; size_t sample_h;
-
   // Texture sampler being used
   Sampler2D* sampler;
 
@@ -95,6 +92,10 @@ public:
 		size_t width, size_t height);
 
 	std::vector<unsigned char> sample_buffer; int w; int h;
+
+	// Sample buffer dimension (in samples)
+	size_t sample_w; size_t sample_h;
+
 	void fill_sample(int sx, int sy, const Color& color);
 	void fill_pixel(int x, int y, const Color& color);
 
@@ -153,7 +154,11 @@ private:
 	// resolve samples to render target
 	void resolve(void);
 
+	// on edge equation
 	int edge(int x, int y, int p0x, int p0y, int p1x, int p1y);
+
+	// clears the sample buffer
+	void clear_sample_buffer(size_t desired_size);
 
 	SoftwareRendererRef *ref;
 }; // class SoftwareRendererImp
