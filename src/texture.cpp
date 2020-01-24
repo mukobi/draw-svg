@@ -101,14 +101,93 @@ Color Sampler2DImp::sample_nearest(Texture& tex,
   return sample_color;
 }
 
+float lerp(float x, float v0, float v1) {
+  return v0 + x * (v1 - v0);
+}
+
 Color Sampler2DImp::sample_bilinear(Texture& tex, 
                                     float u, float v, 
                                     int level) {
   
   // Task 4: Implement bilinear filtering
 
-  // return magenta for invalid level
-  return Color(1,0,1,1);
+  auto mip_level = tex.mipmap[level];
+  auto texels = mip_level.texels;
+  float inv255 = 1.0 / 255.0;
+
+  float x = u * mip_level.width;
+  float y = v * mip_level.height;
+
+  int nearest_x = int(floor(x - 1));
+  int nearest_y = int(floor(y - 1));
+
+  Color white;
+  white.r = 1.0;
+  white.g = 1.0;
+  white.b = 1.0;
+  white.a = 1.0;
+
+  // u00
+  size_t index = nearest_x + nearest_y * mip_level.width;
+
+  Color u00;
+  u00.r = float(texels[4 * index]) * inv255;
+  u00.g = float(texels[4 * (index)+1]) * inv255;
+  u00.b = float(texels[4 * (index)+2]) * inv255;
+  u00.a = float(texels[4 * (index)+3]) * inv255;
+
+  // u01
+  index = nearest_x + (nearest_y+1) * mip_level.width;
+
+  Color u01;
+  u01.r = float(texels[4 * index]) * inv255;
+  u01.g = float(texels[4 * (index)+1]) * inv255;
+  u01.b = float(texels[4 * (index)+2]) * inv255;
+  u01.a = float(texels[4 * (index)+3]) * inv255;
+  
+  // u10
+  index = (nearest_x+1) + nearest_y * mip_level.width;
+
+  Color u10;
+  u10.r = float(texels[4 * index]) * inv255;
+  u10.g = float(texels[4 * (index)+1]) * inv255;
+  u10.b = float(texels[4 * (index)+2]) * inv255;
+  u10.a = float(texels[4 * (index)+3]) * inv255;
+
+  // u11
+  index = (nearest_x + 1) + (nearest_y + 1) * mip_level.width;
+
+  Color u11;
+  u11.r = float(texels[4 * index]) * inv255;
+  u11.g = float(texels[4 * (index)+1]) * inv255;
+  u11.b = float(texels[4 * (index)+2]) * inv255;
+  u11.a = float(texels[4 * (index)+3]) * inv255;
+
+  float s = (x - (float(nearest_x)));
+  float t = (y - (float(nearest_y)));
+
+  // two helper lerps
+  Color u0;
+  u0.r = lerp(s, u00.r, u10.r);
+  u0.g = lerp(s, u00.g, u10.g);
+  u0.b = lerp(s, u00.b, u10.b);
+  u0.a = lerp(s, u00.a, u10.a);
+
+  Color u1;
+  u1.r = lerp(s, u01.r, u11.r);
+  u1.g = lerp(s, u01.g, u11.g);
+  u1.b = lerp(s, u01.b, u11.b);
+  u1.a = lerp(s, u01.a, u11.a);
+
+  // final helper lerp
+
+  Color final_color;
+  final_color.r = lerp(t, u0.r, u1.r);
+  final_color.g = lerp(t, u0.g, u1.g);
+  final_color.b = lerp(t, u0.b, u1.b);
+  final_color.a = lerp(t, u0.a, u1.a);
+
+  return final_color;
 
 }
 

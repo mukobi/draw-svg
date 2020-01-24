@@ -84,7 +84,7 @@ void SoftwareRendererImp::set_sample_rate( size_t sample_rate ) {
 
   // Task 2: 
   // You may want to modify this for supersampling support
-  cout << "set_sample_rate" << endl;
+  //cout << "set_sample_rate" << endl;
   this->sample_rate = sample_rate;
   this->sample_w = target_w * sample_rate;
   this->sample_h = target_h * sample_rate;
@@ -96,7 +96,7 @@ void SoftwareRendererImp::set_render_target( unsigned char* render_target,
 
   // Task 2: 
   // You may want to modify this for supersampling support
-  cout << "set_render_target" << endl;
+  //cout << "set_render_target" << endl;
   this->render_target = render_target;
   this->target_w = width;
   this->target_h = height;
@@ -110,9 +110,9 @@ void SoftwareRendererImp::set_render_target( unsigned char* render_target,
 
 void SoftwareRendererImp::clear_sample_buffer(size_t desired_size)
 {
-  cout << "clear_sample_buffer" << endl;
+  //cout << "clear_sample_buffer" << endl;
   if (sample_buffer.size() != desired_size) {
-    cout << "Reserve" << endl;
+    //cout << "Reserve" << endl;
     sample_buffer.reserve(desired_size);
   }
   sample_buffer.assign(desired_size, 255);
