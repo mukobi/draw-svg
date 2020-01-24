@@ -1,0 +1,4 @@
+SUID: gmukobi
+Tasks: All of Tasks 1,2,3,4,5 completely (except nearest instead of bilineary interpolation on task 4)
+Extra Credit: nah
+Comments: It felt like one of the greatest challenges was navigating this codebase and the peculiar way things were named and organized. It might have gone smoother with more complete documentation and commenting in the provided code.
